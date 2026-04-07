@@ -1,0 +1,89 @@
+version: '3.8'
+
+services:
+  # 应用服务
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://ticket:ticket123@db:5432/ticket_system
+      - DATABASE_ASYNC_URL=postgresql+asyncpg://ticket:ticket123@db:5432/ticket_system
+      - REDIS_URL=redis://redis:6379/0
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-your-secret-key-change-in-production}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-your-encryption-key-change-in-production}
+      - ENVIRONMENT=production
+      - LOG_LEVEL=INFO
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./logs:/app/logs
+    restart: unless-stopped
+    networks:
+      - ticket-network
+
+  # PostgreSQL 数据库
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: ticket_system
+      POSTGRES_USER: ticket
+      POSTGRES_PASSWORD: ticket123
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/create_tables.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ticket -d ticket_system"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - ticket-network
+
+  # Redis 缓存
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - ticket-network
+
+  # Celery Worker（可选）
+  worker:
+    build: .
+    command: celery -A src.core.celery_app worker --loglevel=info
+    environment:
+      - DATABASE_URL=postgresql://ticket:ticket123@db:5432/ticket_system
+      - REDIS_URL=redis://redis:6379/0
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-your-secret-key-change-in-production}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-your-encryption-key-change-in-production}
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - ./logs:/app/logs
+    restart: unless-stopped
+    networks:
+      - ticket-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  ticket-network:
+    driver: bridge
