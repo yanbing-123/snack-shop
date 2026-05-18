@@ -13,6 +13,8 @@
     <div class="container header-inner">
       <h1 class="logo">🍿 零食铺子</h1>
       <div class="auth-header" id="authContainer"></div>
+      <button class="staff-toggle" id="staffToggle" onclick="window._snack.toggleStaffMode()">👤 管理</button>
+      <button class="orders-btn" onclick="window._snack.openOrders()">📋 订单</button>
       <button class="cart-btn" onclick="window._snack.toggleCart()">
         🛒 购物车
         <span class="cart-badge" id="cartBadge">0</span>
@@ -20,12 +22,28 @@
     </div>
   </header>
 
+  <!-- Promo Banner -->
+  <div class="promo-banner" id="promoBanner" style="display:none">
+    <div class="container promo-inner">
+      <span id="promoText"></span>
+      <button class="promo-close" onclick="window._snack.closePromo()">✕</button>
+    </div>
+  </div>
+
   <!-- Search + Filter Bar -->
   <div class="search-filter-bar">
     <div class="container filter-inner">
-      <div class="search-wrap">
-        <span class="search-icon">🔍</span>
-        <input type="text" id="searchInput" class="search-input" placeholder="搜索零食..." oninput="window._snack.search()">
+      <div class="search-row">
+        <div class="search-wrap">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="searchInput" class="search-input" placeholder="搜索零食..." oninput="window._snack.search()">
+        </div>
+        <select id="sortSelect" class="sort-select" onchange="window._snack.setSort(this.value)">
+          <option value="default">默认排序</option>
+          <option value="price-asc">价格 ↑</option>
+          <option value="price-desc">价格 ↓</option>
+          <option value="name">名称 A-Z</option>
+        </select>
       </div>
       <div class="filter-tags">
         <button class="tag-btn active" data-cat="全部" onclick="window._snack.filterCat('全部')">全部</button>
@@ -35,6 +53,46 @@
         <button class="tag-btn" data-cat="巧克力" onclick="window._snack.filterCat('巧克力')">🍫 巧克力</button>
         <button class="tag-btn" data-cat="饮料" onclick="window._snack.filterCat('饮料')">🥤 饮料</button>
         <button class="tag-btn" data-cat="果冻" onclick="window._snack.filterCat('果冻')">🍮 果冻</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Favorites Section -->
+  <div class="container">
+    <div class="favorites-section" id="favoritesSection" style="display:none">
+      <div class="fav-header" onclick="window._snack.toggleFavSection()">
+        <span>⭐ 收藏的零食</span>
+        <span class="fav-toggle" id="favToggle">▼</span>
+      </div>
+      <div class="fav-grid" id="favGrid"></div>
+    </div>
+  </div>
+
+  <!-- Staff Dashboard -->
+  <div class="staff-dashboard" id="staffDashboard" style="display:none">
+    <div class="container">
+      <div class="staff-tabs">
+        <button class="staff-tab active" data-tab="orders" onclick="window._snack.switchStaffTab('orders')">📋 订单队列</button>
+        <button class="staff-tab" data-tab="stock" onclick="window._snack.switchStaffTab('stock')">📦 库存管理</button>
+        <button class="staff-tab" data-tab="specials" onclick="window._snack.switchStaffTab('specials')">🔥 特价管理</button>
+      </div>
+      <!-- Orders Panel -->
+      <div id="staffOrdersPanel" class="staff-panel">
+        <div class="order-filter-tabs">
+          <button class="order-filter-tab active" data-status="all" onclick="window._snack.filterOrders('all')">全部</button>
+          <button class="order-filter-tab" data-status="received" onclick="window._snack.filterOrders('received')">已接收</button>
+          <button class="order-filter-tab" data-status="preparing" onclick="window._snack.filterOrders('preparing')">准备中</button>
+          <button class="order-filter-tab" data-status="ready" onclick="window._snack.filterOrders('ready')">已完成</button>
+        </div>
+        <div id="staffOrderList"></div>
+      </div>
+      <!-- Stock Panel -->
+      <div id="staffStockPanel" class="staff-panel" style="display:none">
+        <div id="stockManagement"></div>
+      </div>
+      <!-- Specials Panel -->
+      <div id="staffSpecialsPanel" class="staff-panel" style="display:none">
+        <div id="specialsManagement"></div>
       </div>
     </div>
   </div>
@@ -114,6 +172,26 @@
     <div class="order-items" id="orderItems"></div>
     <p class="success-note">感谢您的惠顾，美味马上送到！🍭</p>
     <button class="btn-submit" onclick="window._snack.closeSuccess()">继续购物</button>
+  </div>
+
+  <!-- Orders Modal -->
+  <div class="modal-overlay" id="ordersOverlay" onclick="window._snack.closeOrders()"></div>
+  <div class="modal orders-modal" id="ordersModal">
+    <div class="modal-header">
+      <h3>📋 我的订单</h3>
+      <button class="modal-close" onclick="window._snack.closeOrders()">✕</button>
+    </div>
+    <div id="ordersList"></div>
+  </div>
+
+  <!-- Modifier Picker Modal -->
+  <div class="modal-overlay" id="modifierOverlay" onclick="window._snack.closeModifier()"></div>
+  <div class="modal modifier-modal" id="modifierModal">
+    <div class="modal-header">
+      <h3>🔧 选择规格</h3>
+      <button class="modal-close" onclick="window._snack.closeModifier()">✕</button>
+    </div>
+    <div id="modifierBody"></div>
   </div>
 
   <!-- ===== Login Modal ===== -->
