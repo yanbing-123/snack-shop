@@ -17,8 +17,10 @@
     { id: 12, name: '草莓布丁',  emoji: '🍮', category: '果冻',     price: 7.00,  stock: 90  },
   ];
 
-  var LS_STOCK = 'snack_stock';
-  var LS_CART  = 'snack_cart';
+  var LS_STOCK    = 'snack_stock';
+  var LS_CART     = 'snack_cart';
+  var LS_USERS    = 'snack_users';
+  var LS_SESSION  = 'snack_session';
 
   var stockData      = {};
   var cartData      = [];
@@ -26,10 +28,13 @@
   var currentSearch = '';
   var lastOrderSnap = [];
 
+  var currentUser   = null; // { username, password(base64), phone, address }
+
   // ===== 初始化 =====
   function init() {
     loadStock();
     loadCart();
+    authInit();
     renderProducts();
     updateBadge();
     updateBottomBar();
@@ -141,6 +146,11 @@
 
   // ===== 加入购物车（第一层校验） =====
   function addToCart(id) {
+    if (!isLoggedIn()) {
+      showToast('请先登录后再购物');
+      openLogin();
+      return;
+    }
     var p = getProduct(id);
     if (!p) return;
 
@@ -272,6 +282,11 @@
 
   // ===== 结算（第三层校验） =====
   function openCheckout() {
+    if (!isLoggedIn()) {
+      showToast('请先登录后再结算');
+      openLogin();
+      return;
+    }
     if (cartData.length === 0) return;
 
     for (var i = 0; i < cartData.length; i++) {
@@ -286,6 +301,10 @@
     document.getElementById('summaryTotal').textContent = '¥' + cartTotal().toFixed(2);
     document.getElementById('checkoutForm').reset();
     clearErrors();
+    if (currentUser) {
+      var nameField = document.getElementById('fName');
+      if (nameField && !nameField.value) nameField.value = currentUser.username;
+    }
     document.getElementById('modalOverlay').classList.add('show');
     document.getElementById('checkoutModal').classList.add('show');
   }
@@ -388,7 +407,152 @@
     }, 1800);
   }
 
-  // ===== 辅助 =====
+  // ===== 用户认证 =====
+  function authInit() {
+    loadSession();
+    updateAuthUI();
+  }
+
+  function loadSession() {
+    var saved = localStorage.getItem(LS_SESSION);
+    if (!saved) return;
+    try {
+      var data = JSON.parse(saved);
+      if (!data || !data.username) return;
+      var users = JSON.parse(localStorage.getItem(LS_USERS) || '[]');
+      for (var i = 0; i < users.length; i++) {
+        if (users[i].username === data.username) {
+          currentUser = users[i];
+          return;
+        }
+      }
+    } catch(e) {}
+  }
+
+  function register(username, password) {
+    if (!username || username.length < 2) { showToast('用户名至少需要 2 个字符'); return false; }
+    if (!password || password.length < 6) { showToast('密码至少需要 6 个字符'); return false; }
+
+    var users = JSON.parse(localStorage.getItem(LS_USERS) || '[]');
+    for (var i = 0; i < users.length; i++) {
+      if (users[i].username === username) { showToast('用户名已存在'); return false; }
+    }
+
+    users.push({
+      username: username,
+      password: btoa(password),
+      createdAt: Date.now()
+    });
+    localStorage.setItem(LS_USERS, JSON.stringify(users));
+    return true;
+  }
+
+  function login(username, password) {
+    if (!username || !password) { showToast('请输入用户名和密码'); return false; }
+
+    var users = JSON.parse(localStorage.getItem(LS_USERS) || '[]');
+    var encoded = btoa(password);
+    for (var i = 0; i < users.length; i++) {
+      if (users[i].username === username && users[i].password === encoded) {
+        currentUser = users[i];
+        localStorage.setItem(LS_SESSION, JSON.stringify({ username: username }));
+        updateAuthUI();
+        showToast('登录成功，欢迎 ' + username + '！');
+        return true;
+      }
+    }
+
+    showToast('用户名或密码错误');
+    return false;
+  }
+
+  function logout() {
+    currentUser = null;
+    localStorage.removeItem(LS_SESSION);
+    updateAuthUI();
+    showToast('已退出登录');
+  }
+
+  function isLoggedIn() {
+    return currentUser !== null;
+  }
+
+  function getCurrentUser() {
+    return currentUser;
+  }
+
+  function updateAuthUI() {
+    var container = document.getElementById('authContainer');
+    if (!container) return;
+
+    if (currentUser) {
+      container.innerHTML =
+        '<span class="user-greeting">你好，' + escapeHtml(currentUser.username) + '</span>' +
+        '<button class="auth-btn" onclick="window._snack.logout()">退出</button>';
+    } else {
+      container.innerHTML =
+        '<button class="auth-btn" onclick="window._snack.openLogin()">登录</button>' +
+        '<button class="auth-btn auth-btn-register" onclick="window._snack.openRegister()">注册</button>';
+    }
+  }
+
+  // ===== Auth Modals =====
+  function openLogin() {
+    document.getElementById('loginOverlay').classList.add('show');
+    document.getElementById('loginModal').classList.add('show');
+    setTimeout(function() { document.getElementById('loginUsername').focus(); }, 100);
+  }
+
+  function closeLogin() {
+    document.getElementById('loginOverlay').classList.remove('show');
+    document.getElementById('loginModal').classList.remove('show');
+    var form = document.getElementById('loginForm');
+    if (form) form.reset();
+  }
+
+  function submitLogin(e) {
+    e.preventDefault();
+    var username = document.getElementById('loginUsername').value.trim();
+    var password = document.getElementById('loginPassword').value;
+    if (!username) { showToast('请输入用户名'); return; }
+    if (!password) { showToast('请输入密码'); return; }
+    if (login(username, password)) closeLogin();
+  }
+
+  function openRegister() {
+    document.getElementById('registerOverlay').classList.add('show');
+    document.getElementById('registerModal').classList.add('show');
+    setTimeout(function() { document.getElementById('regUsername').focus(); }, 100);
+  }
+
+  function closeRegister() {
+    document.getElementById('registerOverlay').classList.remove('show');
+    document.getElementById('registerModal').classList.remove('show');
+    var form = document.getElementById('registerForm');
+    if (form) form.reset();
+  }
+
+  function submitRegister(e) {
+    e.preventDefault();
+    var username = document.getElementById('regUsername').value.trim();
+    var password = document.getElementById('regPassword').value;
+    var confirmPwd = document.getElementById('regConfirmPassword').value;
+
+    if (!username || username.length < 2) { showToast('用户名至少需要 2 个字符'); return; }
+    if (!password || password.length < 6) { showToast('密码至少需要 6 个字符'); return; }
+    if (password !== confirmPwd) { showToast('两次密码输入不一致'); return; }
+
+    if (register(username, password)) {
+      closeRegister();
+      showToast('注册成功，请登录');
+    }
+  }
+
+  function escapeHtml(str) {
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+  }
+
+  // ===== 辅助
   function getProduct(id) {
     for (var i = 0; i < PRODUCTS.length; i++) { if (PRODUCTS[i].id === id) return PRODUCTS[i]; }
     return null;
@@ -406,7 +570,16 @@
     openCheckout: openCheckout,
     closeCheckout: closeCheckout,
     submitOrder: submitOrder,
-    closeSuccess: closeSuccess
+    closeSuccess: closeSuccess,
+    openLogin: openLogin,
+    closeLogin: closeLogin,
+    submitLogin: submitLogin,
+    openRegister: openRegister,
+    closeRegister: closeRegister,
+    submitRegister: submitRegister,
+    logout: logout,
+    isLoggedIn: isLoggedIn,
+    getCurrentUser: getCurrentUser
   };
 
   init();
