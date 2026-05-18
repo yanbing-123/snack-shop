@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🍿 零食铺子</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="site-header">
+    <div class="container header-inner">
+      <h1 class="logo">🍿 零食铺子</h1>
+      <button class="cart-btn" onclick="window._snack.toggleCart()">
+        🛒 购物车
+        <span class="cart-badge" id="cartBadge">0</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Search + Filter Bar -->
+  <div class="search-filter-bar">
+    <div class="container filter-inner">
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="searchInput" class="search-input" placeholder="搜索零食..." oninput="window._snack.search()">
+      </div>
+      <div class="filter-tags">
+        <button class="tag-btn active" data-cat="全部" onclick="window._snack.filterCat('全部')">全部</button>
+        <button class="tag-btn" data-cat="糖果" onclick="window._snack.filterCat('糖果')">🍬 糖果</button>
+        <button class="tag-btn" data-cat="饼干" onclick="window._snack.filterCat('饼干')">🍪 饼干</button>
+        <button class="tag-btn" data-cat="坚果" onclick="window._snack.filterCat('坚果')">🥜 坚果</button>
+        <button class="tag-btn" data-cat="巧克力" onclick="window._snack.filterCat('巧克力')">🍫 巧克力</button>
+        <button class="tag-btn" data-cat="饮料" onclick="window._snack.filterCat('饮料')">🥤 饮料</button>
+        <button class="tag-btn" data-cat="果冻" onclick="window._snack.filterCat('果冻')">🍮 果冻</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Product Grid -->
+  <main class="container">
+    <div class="product-grid" id="productGrid"></div>
+  </main>
+
+  <!-- Bottom Cart Bar -->
+  <div class="cart-bar" id="cartBar">
+    <div class="container cart-bar-inner">
+      <span class="cart-tip">已选 <strong id="cartCountBar">0</strong> 件</span>
+      <span class="cart-total-label">合计：<strong id="cartTotalBar">¥0.00</strong></span>
+      <button class="btn-settle" id="btnSettle" onclick="window._snack.openCheckout()" disabled>去结算</button>
+    </div>
+  </div>
+
+  <!-- Cart Drawer Overlay -->
+  <div class="drawer-overlay" id="drawerOverlay" onclick="window._snack.toggleCart()"></div>
+
+  <!-- Cart Drawer -->
+  <aside class="cart-drawer" id="cartDrawer">
+    <div class="drawer-header">
+      <h3>🛒 购物车</h3>
+      <button class="drawer-close" onclick="window._snack.toggleCart()">✕</button>
+    </div>
+    <div class="drawer-items" id="drawerItems"></div>
+    <div class="drawer-footer">
+      <div class="drawer-total">
+        <span>总计：</span>
+        <span class="drawer-price" id="drawerTotal">¥0.00</span>
+      </div>
+      <div class="drawer-btns">
+        <button class="btn-clear" onclick="window._snack.clearCart()">清空</button>
+        <button class="btn-checkout" id="btnCheckout" onclick="window._snack.openCheckout()" disabled>去结算</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Checkout Modal -->
+  <div class="modal-overlay" id="modalOverlay" onclick="window._snack.closeCheckout()"></div>
+  <div class="modal checkout-modal" id="checkoutModal">
+    <div class="modal-header">
+      <h3>📋 填写订单信息</h3>
+      <button class="modal-close" onclick="window._snack.closeCheckout()">✕</button>
+    </div>
+    <form class="checkout-form" id="checkoutForm" onsubmit="window._snack.submitOrder(event)">
+      <div class="form-group">
+        <label for="fName">姓名 <span class="required">*</span></label>
+        <input type="text" id="fName" placeholder="请输入收货人姓名" maxlength="20">
+        <span class="error-msg" id="errName"></span>
+      </div>
+      <div class="form-group">
+        <label for="fPhone">手机号 <span class="required">*</span></label>
+        <input type="tel" id="fPhone" placeholder="请输入11位手机号" maxlength="11">
+        <span class="error-msg" id="errPhone"></span>
+      </div>
+      <div class="form-group">
+        <label for="fAddress">收货地址 <span class="required">*</span></label>
+        <textarea id="fAddress" placeholder="请输入详细收货地址" rows="2" maxlength="100"></textarea>
+        <span class="error-msg" id="errAddress"></span>
+      </div>
+      <div class="form-summary">
+        共 <strong id="summaryCount">0</strong> 件，合计 <strong id="summaryTotal">¥0.00</strong>
+      </div>
+      <button type="submit" class="btn-submit">确认提交订单</button>
+    </form>
+  </div>
+
+  <!-- Success Modal -->
+  <div class="modal-overlay" id="successOverlay"></div>
+  <div class="modal success-modal" id="successModal">
+    <div class="success-icon">🎉</div>
+    <h3>下单成功！</h3>
+    <p class="order-num" id="orderNum"></p>
+    <div class="order-items" id="orderItems"></div>
+    <p class="success-note">感谢您的惠顾，美味马上送到！🍭</p>
+    <button class="btn-submit" onclick="window._snack.closeSuccess()">继续购物</button>
+  </div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
